@@ -33,3 +33,20 @@ jobs:
               issue_number: context.issue.number,
               body: `## AI Review\n${review.result}`
             });
+
+      - name: Analyze Test Failure
+        if: failure()
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # Capture the test output from the failed step
+          pytest tests/ -v 2>&1 | tail -100 > test-output.txt
+          
+          # Ask Claude to explain and suggest a fix
+          cat test-output.txt | claude -p \
+            "This CI test run failed. Explain:
+             1. Which test(s) failed and why
+             2. Root cause analysis
+             3. Suggested fix (with code if possible)
+             4. Is this a flaky test or a real bug?" \
+            --output-format json > failure-analysis.json
