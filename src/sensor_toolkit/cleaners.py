@@ -1,12 +1,12 @@
 """Data cleaning and normalization for sensor readings."""
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 SensorReading = dict[str, Any]
 
 
-def clean_temperature(temp: Any) -> Optional[float]:
+def clean_temperature(temp: Any) -> float | None:
     """Clean and normalize temperature value.
 
     Args:
@@ -27,7 +27,7 @@ def clean_temperature(temp: Any) -> Optional[float]:
         return None
 
 
-def clean_pressure(pressure: Any) -> Optional[float]:
+def clean_pressure(pressure: Any) -> float | None:
     """Clean and normalize pressure value.
 
     Args:
@@ -48,7 +48,7 @@ def clean_pressure(pressure: Any) -> Optional[float]:
         return None
 
 
-def clean_humidity(humidity: Any) -> Optional[float]:
+def clean_humidity(humidity: Any) -> float | None:
     """Clean and normalize humidity value.
 
     Args:
@@ -69,7 +69,7 @@ def clean_humidity(humidity: Any) -> Optional[float]:
         return None
 
 
-def clean_sensor_id(sensor_id: Any) -> Optional[str]:
+def clean_sensor_id(sensor_id: Any) -> str | None:
     """Clean and normalize sensor ID.
 
     Args:
@@ -90,7 +90,7 @@ def clean_sensor_id(sensor_id: Any) -> Optional[str]:
     return None
 
 
-def clean_timestamp(timestamp: Any) -> Optional[str]:
+def clean_timestamp(timestamp: Any) -> str | None:
     """Clean and normalize ISO 8601 timestamp.
 
     Args:

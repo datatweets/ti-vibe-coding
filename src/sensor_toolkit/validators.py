@@ -101,6 +101,25 @@ def validate_humidity(humidity: Any) -> tuple[bool, str]:
     return False, f"humidity out of range [0, 100]: {value}"
 
 
+def validate_voltage(voltage: Any) -> tuple[bool, str]:
+    """Validate voltage in range [0, 5] V.
+
+    Args:
+        voltage: Value to validate as voltage.
+
+    Returns:
+        Tuple of (is_valid, error_message).
+    """
+    try:
+        value = float(voltage)
+    except (TypeError, ValueError):
+        return False, f"voltage must be numeric, got {voltage}"
+
+    if 0 <= value <= 5:
+        return True, ""
+    return False, f"voltage out of range [0, 5]: {value}"
+
+
 def validate_reading(reading: SensorReading) -> tuple[bool, dict[str, str]]:
     """Validate a complete sensor reading.
 
