@@ -1,6 +1,5 @@
 """Tests for src/sensor_toolkit/cleaners.py."""
 
-import pytest
 
 from sensor_toolkit.cleaners import (
     clean_humidity,

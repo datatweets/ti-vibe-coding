@@ -14,3 +14,16 @@ htmlcov/
 .ruff_cache/
 *.log
 .DS_Store
+
+# Claude Code local overrides (personal API keys, local model preferences)
+.claude/settings.local.json
+
+# Generated reports
+M1_TEACHING_READINESS.md
+MODULE1_ALIGNMENT_REPORT.md
+MODULE2_ALIGNMENT_REPORT.md
+MODULE3_ALIGNMENT_REPORT.md
+MODULE4_ALIGNMENT_REPORT.md
+OUTLINE_ALIGNMENT_REPORT.md
+check.md
+system_design.md

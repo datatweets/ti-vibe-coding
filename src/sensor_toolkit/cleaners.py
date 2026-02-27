@@ -1,9 +1,14 @@
 """Data cleaning and normalization for sensor readings."""
 
-from datetime import datetime
-from typing import Any
+from __future__ import annotations
 
-SensorReading = dict[str, Any]
+from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .validators import SensorReading
+
+SensorReadingDict = dict[str, Any]
 
 
 def clean_temperature(temp: Any) -> float | None:
@@ -112,7 +117,7 @@ def clean_timestamp(timestamp: Any) -> str | None:
         return None
 
 
-def clean_reading(reading: SensorReading) -> SensorReading:
+def clean_reading(reading: SensorReadingDict) -> SensorReadingDict:
     """Clean and normalize all fields in a sensor reading.
 
     Args:
@@ -128,3 +133,157 @@ def clean_reading(reading: SensorReading) -> SensorReading:
         "pressure": clean_pressure(reading.get("pressure")),
         "humidity": clean_humidity(reading.get("humidity")),
     }
+
+
+def remove_duplicates(readings: list[SensorReading]) -> list[SensorReading]:
+    """Remove duplicate sensor readings based on timestamp and sensor_id.
+
+    Deduplicates readings by the combination of (timestamp, sensor_id),
+    keeping the first occurrence of each unique pair.
+
+    Args:
+        readings: List of SensorReading instances to deduplicate.
+
+    Returns:
+        List of unique SensorReading instances with duplicates removed.
+
+    Examples:
+        >>> from datetime import datetime
+        >>> from sensor_toolkit.validators import SensorReading
+        >>> readings = [
+        ...     SensorReading(datetime(2025, 1, 1, 12, 0), "TI-A001-B001", 25.0, 500.0, 50.0),
+        ...     SensorReading(datetime(2025, 1, 1, 12, 0), "TI-A001-B001", 26.0, 501.0, 51.0),
+        ... ]
+        >>> unique = remove_duplicates(readings)
+        >>> len(unique)
+        1
+    """
+    seen: set[tuple[datetime, str]] = set()
+    result: list[SensorReading] = []
+
+    for reading in readings:
+        key = (reading.timestamp, reading.sensor_id)
+        if key not in seen:
+            seen.add(key)
+            result.append(reading)
+
+    return result
+
+
+def clamp_outliers(
+    readings: list[SensorReading],
+    temp_range: tuple[float, float] = (-40, 150),
+    pressure_range: tuple[float, float] = (0, 1000),
+    humidity_range: tuple[float, float] = (0, 100),
+) -> list[SensorReading]:
+    """Clamp sensor reading values to valid ranges.
+
+    Instead of removing readings with out-of-range values, this function
+    clamps each value to the nearest valid boundary.
+
+    Args:
+        readings: List of SensorReading instances to process.
+        temp_range: Valid temperature range as (min, max). Defaults to (-40, 150).
+        pressure_range: Valid pressure range as (min, max). Defaults to (0, 1000).
+        humidity_range: Valid humidity range as (min, max). Defaults to (0, 100).
+
+    Returns:
+        List of SensorReading instances with values clamped to valid ranges.
+
+    Examples:
+        >>> from datetime import datetime
+        >>> from sensor_toolkit.validators import SensorReading
+        >>> readings = [
+        ...     SensorReading(datetime.now(), "TI-A001-B001", 200.0, -50.0, 150.0),
+        ... ]
+        >>> clamped = clamp_outliers(readings)
+        >>> clamped[0].temperature
+        150.0
+        >>> clamped[0].pressure
+        0.0
+        >>> clamped[0].humidity
+        100.0
+    """
+    from .validators import SensorReading as SR
+
+    result: list[SensorReading] = []
+
+    for reading in readings:
+        clamped_temp = max(temp_range[0], min(temp_range[1], reading.temperature))
+        clamped_pressure = max(pressure_range[0], min(pressure_range[1], reading.pressure))
+        clamped_humidity = max(humidity_range[0], min(humidity_range[1], reading.humidity))
+
+        result.append(
+            SR(
+                timestamp=reading.timestamp,
+                sensor_id=reading.sensor_id,
+                temperature=clamped_temp,
+                pressure=clamped_pressure,
+                humidity=clamped_humidity,
+            )
+        )
+
+    return result
+
+
+def fill_missing_timestamps(
+    readings: list[SensorReading],
+    interval_seconds: int = 60,
+) -> list[SensorReading]:
+    """Fill gaps in time series data with placeholder readings.
+
+    Inserts placeholder readings for missing time intervals. Placeholder
+    readings use NaN values for temperature, pressure, and humidity to
+    indicate missing data.
+
+    Args:
+        readings: List of SensorReading instances sorted by timestamp.
+        interval_seconds: Expected interval between readings in seconds.
+            Defaults to 60.
+
+    Returns:
+        List of SensorReading instances with gaps filled. Original readings
+        are preserved; placeholder readings have NaN values for measurements.
+
+    Examples:
+        >>> from datetime import datetime
+        >>> from sensor_toolkit.validators import SensorReading
+        >>> readings = [
+        ...     SensorReading(datetime(2025, 1, 1, 12, 0), "TI-A001-B001", 25.0, 500.0, 50.0),
+        ...     SensorReading(datetime(2025, 1, 1, 12, 2), "TI-A001-B001", 26.0, 501.0, 51.0),
+        ... ]
+        >>> filled = fill_missing_timestamps(readings, interval_seconds=60)
+        >>> len(filled)  # Original 2 + 1 placeholder
+        3
+    """
+    from .validators import SensorReading as SR
+
+    if not readings:
+        return []
+
+    # Sort readings by timestamp
+    sorted_readings = sorted(readings, key=lambda r: r.timestamp)
+    result: list[SensorReading] = []
+    interval = timedelta(seconds=interval_seconds)
+
+    for i, reading in enumerate(sorted_readings):
+        result.append(reading)
+
+        # Check if there's a next reading and if there's a gap
+        if i < len(sorted_readings) - 1:
+            next_reading = sorted_readings[i + 1]
+            current_time = reading.timestamp + interval
+
+            # Fill gaps with placeholder readings
+            while current_time < next_reading.timestamp:
+                placeholder = SR(
+                    timestamp=current_time,
+                    sensor_id=reading.sensor_id,
+                    temperature=float("nan"),
+                    pressure=float("nan"),
+                    humidity=float("nan"),
+                )
+                result.append(placeholder)
+                current_time += interval
+
+    return result

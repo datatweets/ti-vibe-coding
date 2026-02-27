@@ -1,6 +1,7 @@
 {
+  "model": "claude-opus-4-5",
   "permissions": {
-    "allowedTools": [
+    "allow": [
       "Read",
       "Write",
       "Edit",
@@ -25,11 +26,24 @@
       "Bash(radon *)",
       "Bash(pip-audit *)"
     ],
-    "disallowedTools": [
+    "deny": [
       "Bash(rm -rf *)",
       "Bash(sudo *)",
       "Bash(curl *)",
       "Bash(wget *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ruff check --fix $CLAUDE_FILE_PATHS 2>/dev/null || true"
+          }
+        ]
+      }
     ]
   }
 }
