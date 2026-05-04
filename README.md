@@ -80,4 +80,4 @@ ti-vibe-coding/
 
 ## Trainer
 
-Mehdi Allahyari — Abundent Academy | HRDF Certified Training Provider
+Mohammad Mehdi Lotfinejad — Abundent Academy | HRDF Certified Training Provider
